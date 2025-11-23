@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BoardBuddy AI - Login</title>
+  <style>
+    /* Paste your beautiful CSS from before here */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%); color: white; height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { width: 100%; max-width: 420px; padding: 20px; }
+    .login-card { background: #111; border-radius: 20px; padding: 50px 40px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.8); border: 1px solid #333; }
+    h1 { font-size: 42px; font-weight: 800; margin-bottom: 8px; }
+    .ai { background: linear-gradient(90deg, #00ff88, #00d4ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }
+    .tagline { color: #aaa; font-size: 16px; margin-bottom: 40px; }
+    button { background: #00ff88; color: black; padding: 14px 32px; border: none; border-radius: 50px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 20px; }
+    .footer-text { margin-top: 50px; font-size: 15px; color: #888; }
+    strong { color: #00ff88; }
+  </style>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="login-card">
+      <h1>BoardBuddy <span class="ai">AI</span></h1>
+      <p class="tagline">Your Personal Class 12 Board Exam Mentor</p>
+      <button onclick="googleSignIn()">Continue with Google</button>
+      <p class="footer-text">
+        Only 90 days left. Every minute counts.<br/>
+        <strong>Score 95+ in 2026 Boards</strong>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // PASTE YOUR FIREBASE CONFIG HERE
+  const firebaseConfig = {
+  apiKey: "AIzaSyAFAON_ZDa46nB4Beh1X2TFSU_gUTJW0oQ",
+  authDomain: "boardbuddy-42e1f.firebaseapp.com",
+  projectId: "boardbuddy-42e1f",
+  storageBucket: "boardbuddy-42e1f.firebasestorage.app",
+  messagingSenderId: "159681600582",
+  appId: "1:159681600582:web:f6af9820c9516083a53e47",
+  measurementId: "G-9EFVKSNKM8"
+};
+
+    firebase.initializeApp(firebaseConfig);
+
+    function googleSignIn() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      firebase.auth().signInWithPopup(provider)
+        .then((result) => {
+          const user = result.user;
+          localStorage.setItem("user", JSON.stringify({
+            name: user.displayName,
+            email: user.email,
+            photo: user.photoURL,
+            uid: user.uid
+          }));
+          // Check if first time
+          const onboarded = localStorage.getItem("onboarded");
+          window.location.href = onboarded ? "dashboard.html" : "onboarding.html";
+        })
+        .catch((error) => {
+          alert("Login failed: " + error.message);
+        });
+    }
+  </script>
+</body>
+</html>

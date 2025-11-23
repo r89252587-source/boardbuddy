@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Setup Your Plan - BoardBuddy AI</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="dark-mode">
+  <div class="onboarding">
+    <h1>Complete Your Profile</h1>
+    <p>We’ll create your perfect 90-day plan</p>
+
+    <form id="onboardingForm">
+      <input type="text" placeholder="Your Name" id="name" required />
+      <select id="board" required><option value="">Select Board</option><option>CBSE</option><option>ICSE</option></select>
+      <select id="stream" required><option value="">Stream</option><option>PCM</option><option>PCB</option><option>Commerce</option></select>
+      <input type="number" placeholder="Target % (e.g. 95)" min="70" max="100" required />
+
+      <div class="slider-group">
+        <label>Physics: <span id="pVal">30</span>%</label>
+        <input type="range" min="0" max="100" value="30" data-val="pVal" />
+        <label>Chemistry: <span id="cVal">35</span>%</label>
+        <input type="range" min="0" max="100" value="35" data-val="cVal" />
+        <label>Maths/Bio: <span id="mVal">40</span>%</label>
+        <input type="range" min="0" max="100" value="40" data-val="mVal" />
+      </div>
+
+      <input type="time" value="05:30" required /> <label>Wake up</label>
+      <input type="time" value="22:30" required /> <label>Sleep time</label>
+
+      <button type="submit" class="cta">Generate My 90-Day Plan</button>
+    </form>
+  </div>
+
+  <script src="js/onboarding.js"></script>
+</body>
+</html>
