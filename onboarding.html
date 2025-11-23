@@ -1,38 +1,499 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Setup Your Plan - BoardBuddy AI</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <title>Onboarding • BoardBuddy AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root { --bg: #0a0a0a; --card: rgba(20, 20, 30, 0.7); --text: #ffffff; --accent: #00ff88; --gray: #aaaaaa; --border: rgba(255, 255, 255, 0.1); }
+    .light-mode { --bg: #f8f9fa; --card: rgba(255, 255, 255, 0.9); --text: #1a1a1a; --accent: #00cc70; --gray: #666666; --border: rgba(0, 0, 0, 0.1); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0f0f1a, #1a1a2e); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; transition: all 0.4s; }
+    .light-mode body { background: linear-gradient(135deg, #e0f7fa, #ffffff); }
+
+    .container { width: 100%; max-width: 480px; background: var(--card); backdrop-filter: blur(20px); border-radius: 24px; padding: 40px 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid var(--border); position: relative; }
+    .header { text-align: center; margin-bottom: 32px; }
+    h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+    .ai { background: linear-gradient(90deg, #00ff88, #00d4ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }
+    .subtitle { color: var(--gray); font-size: 16px; }
+
+    .progress-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin: 24px 0; overflow: hidden; }
+    .progress-fill { width: 0%; height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.8s ease; }
+
+    form { display: flex; flex-direction: column; gap: 20px; }
+    label { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--gray); }
+    input, select { padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--text); font-size: 16px; }
+    .light-mode input, .light-mode select { background: rgba(0,0,0,0.05); }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+    .slider-group { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 16px; border: 1px solid var(--border); }
+    .slider { display: flex; justify-content: space-between; align-items: center; margin: 16px 0; }
+    .slider input[type="range"] { flex: 1; margin: 0 12px; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); -webkit-appearance: none; }
+    .slider input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; background: var(--accent); border-radius: 50%; cursor: pointer; }
+    .value { font-weight: 700; font-size: 18px; min-width: 50px; text-align: right; color: var(--accent); }
+
+    .time-group { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    button { margin-top: 24px; padding: 16px; background: var(--accent); color: black; font-weight: 700; font-size: 17px; border: none; border-radius: 16px; cursor: pointer; }
+    button:hover { background: #00ff99; transform: translateY(-2px); }
+    .finish-btn { display: none; background: #333; color: white; }
+    .finish-btn.visible { display: block; }
+
+    .theme-toggle { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; }
+  </style>
 </head>
 <body class="dark-mode">
-  <div class="onboarding">
-    <h1>Complete Your Profile</h1>
-    <p>We’ll create your perfect 90-day plan</p>
+  <div class="container">
+    <button class="theme-toggle" onclick="toggleTheme()">Light/Dark</button>
+
+    <div class="header">
+      <h1>BoardBuddy <span class="ai">AI</span></h1>
+      <p class="subtitle">Let’s create your perfect 90-day board exam plan</p>
+    </div>
+
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
 
     <form id="onboardingForm">
-      <input type="text" placeholder="Your Name" id="name" required />
-      <select id="board" required><option value="">Select Board</option><option>CBSE</option><option>ICSE</option></select>
-      <select id="stream" required><option value="">Stream</option><option>PCM</option><option>PCB</option><option>Commerce</option></select>
-      <input type="number" placeholder="Target % (e.g. 95)" min="70" max="100" required />
+      <div><label>Your Name</label><input type="text" id="name" placeholder="e.g. Rohit Sharma" required /></div>
+      <div><label>Board</label><select id="board" required><option value="" disabled selected>Select board</option><option>CBSE</option><option>ICSE</option><option>State Board</option></select></div>
+      <div><label>Stream</label><select id="stream" required><option value="" disabled selected>Select stream</option><option>PCM</option><option>PCB</option><option>Commerce</option><option>Arts</option></select></div>
+      <div><label>Target Percentage</label><input type="number" min="70" max="100" placeholder="95" required /></div>
 
       <div class="slider-group">
-        <label>Physics: <span id="pVal">30</span>%</label>
-        <input type="range" min="0" max="100" value="30" data-val="pVal" />
-        <label>Chemistry: <span id="cVal">35</span>%</label>
-        <input type="range" min="0" max="100" value="35" data-val="cVal" />
-        <label>Maths/Bio: <span id="mVal">40</span>%</label>
-        <input type="range" min="0" max="100" value="40" data-val="mVal" />
+        <p style="margin-bottom:16px; font-weight:600;">Current Syllabus Progress</p>
+        <div class="slider"><span>Physics</span><input type="range" min="0" max="100" value="30" data-val="phy"/><span class="value" id="phy">30%</span></div>
+        <div class="slider"><span>Chemistry</span><input type="range" min="0" max="100" value="35" data-val="chem"/><span class="value" id="chem">35%</span></div>
+        <div class="slider"><span>Maths/Bio</span><input type="range" min="0" max="100" value="40" data-val="math"/><span class="value" id="math">40%</span></div>
       </div>
 
-      <input type="time" value="05:30" required /> <label>Wake up</label>
-      <input type="time" value="22:30" required /> <label>Sleep time</label>
+      <div class="time-group">
+        <div><label>Wake Up Time</label><input type="time" value="05:30" required /></div>
+        <div><label>Sleep Time</label><input type="time" value="22:30" required /></div>
+      </div>
 
-      <button type="submit" class="cta">Generate My 90-Day Plan</button>
+      <button type="submit">Generate My Reference Routine</button>
+      <button type="button" class="finish-btn" id="finishBtn">Finish & Start Dashboard</button>
     </form>
   </div>
 
-  <script src="js/onboarding.js"></script>
+  <script>
+  const firebaseConfig = {
+  apiKey: "AIzaSyAFAON_ZDa46nB4Beh1X2TFSU_gUTJW0oQ",
+  authDomain: "boardbuddy-42e1f.firebaseapp.com",
+  projectId: "boardbuddy-42e1f",
+  storageBucket: "boardbuddy-42e1f.firebasestorage.app",
+  messagingSenderId: "159681600582",
+  appId: "1:159681600582:web:f6af9820c9516083a53e47",
+  measurementId: "G-9EFVKSNKM8"
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    let userData = {};
+    let hasRoutine = false;
+
+    // Check if user is logged in
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) { window.location.href = "login.html"; return; }
+
+      const doc = await db.collection("users").doc(user.uid).get();
+      if (doc.exists) {
+        userData = doc.data();
+        document.getElementById("name").value = userData.name || "";
+        document.getElementById("board").value = userData.board || "";
+        document.getElementById("stream").value = userData.stream || "";
+        document.querySelector('input[type="number"]').value = userData.targetMarks || 95;
+        document.querySelector('input[type="time"]').value = userData.wakeUp || "05:30";
+        document.querySelectorAll('input[type="time"]')[1].value = userData.sleepTime || "22:30";
+
+        if (userData.syllabus) {
+          document.querySelector('[data-val="phy"]').value = userData.syllabus.Physics || 30;
+          document.querySelector('[data-val="chem"]').value = userData.syllabus.Chemistry || 35;
+          document.querySelector('[data-val="math"]').value = userData.syllabus.Maths || 40;
+          ["phy", "chem", "math"].forEach(id => document.getElementById(id).textContent = (userData.syllabus[id.charAt(0).toUpperCase() + id.slice(1)] || 30) + "%");
+        }
+
+        // Check if Reference Routine exists
+        if (userData.referenceRoutine) {
+          hasRoutine = true;
+          document.getElementById("finishBtn").classList.add("visible");
+          document.querySelector('button[type="submit"]').style.display = "none";
+        }
+      }
+    });
+
+    // Theme
+    function toggleTheme() {
+      const isLight = document.body.classList.toggle('light-mode');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    }
+    if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
+
+    // Sliders
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+      const id = slider.dataset.val;
+      const output = document.getElementById(id);
+      output.textContent = slider.value + '%';
+      slider.oninput = () => output.textContent = slider.value + '%';
+    });
+
+    // Progress bar
+    setTimeout(() => document.getElementById('progress').style.width = '85%', 400);
+
+    // Generate Routine + Save
+    document.getElementById('onboardingForm').onsubmit = async (e) => {
+      e.preventDefault();
+
+      const user = auth.currentUser;
+      if (!user) return alert("Login required!");
+
+      const form = e.target;
+      const data = {
+        name: form.name.value.trim(),
+        board: form.querySelectorAll('select')[0].value,
+        stream: form.querySelectorAll('select')[1].value,
+        targetMarks: parseInt(form.querySelector('input[type="number"]').value),
+        syllabus: {
+          Physics: parseInt(document.getElementById('phy').textContent),
+          Chemistry: parseInt(document.getElementById('chem').textContent),
+          Maths: parseInt(document.getElementById('math').textContent)
+        },
+        wakeUp: form.querySelector('input[type="time"]').value,
+        sleepTime: form.querySelectorAll('input[type="time"]')[1].value,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      try {
+        await db.collection('users').doc(user.uid).set(data, { merge: true });
+        alert('Profile saved! Generating your routine...');
+        window.location.href = "routinemaking.html"; // Go to AI routine maker
+      } catch (err) {
+        alert('Save failed: ' + err.message);
+      }
+    };
+
+    // Finish Button → Copy to Today + Go to Dashboard
+    document.getElementById('finishBtn').onclick = async () => {
+      const user = auth.currentUser;
+      const today = new Date().toISOString().split("T")[0];
+
+      try {
+        // Copy reference routine to today
+        const userDoc = await db.collection("users").doc(user.uid).get();
+        const routine = userDoc.data().referenceRoutine;
+
+        if (!routine) {
+          alert("No routine found! Create one first.");
+          return;
+        }
+
+        await db.collection("users").doc(user.uid).collection("daily").doc(today).set({
+          routine: routine,
+          date: today,
+          completed: []
+        }, { merge: true });
+
+        localStorage.setItem('onboarded', 'true');
+        alert('Welcome! Starting your journey...');
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    };
+  </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Onboarding • BoardBuddy AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDKs -->
+  <!-- <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --card: rgba(20, 20, 30, 0.7);
+      --text: #ffffff;
+      --accent: #00ff88;
+      --gray: #aaaaaa;
+      --border: rgba(255, 255, 255, 0.1);
+    }
+    .light-mode { -->
+      <!-- --bg: #f8f9fa;
+      --card: rgba(255, 255, 255, 0.9);
+      --text: #1a1a1a;
+      --accent: #00cc70;
+      --gray: #666666;
+      --border: rgba(0, 0, 0, 0.1);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f0f1a, #1a1a2e);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      transition: all 0.4s;
+    }
+    .light-mode body { background: linear-gradient(135deg, #e0f7fa, #ffffff); }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 40px 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .header { text-align: center; margin-bottom: 32px; }
+    h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+    .ai {
+      background: linear-gradient(90deg, #00ff88, #00d4ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 900;
+    }
+    .subtitle { color: var(--gray); font-size: 16px; }
+
+    .progress-bar {
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      margin: 24px 0;
+      overflow: hidden;
+    }
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--accent);
+      border-radius: 3px;
+      transition: width 0.8s ease;
+    }
+
+    form { display: flex; flex-direction: column; gap: 20px; }
+    label { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--gray); }
+    input, select {
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      font-size: 16px;
+    }
+    .light-mode input, .light-mode select { background: rgba(0,0,0,0.05); }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+    .slider-group {
+      background: rgba(255,255,255,0.03);
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+    .slider {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 16px 0;
+    }
+    .slider input[type="range"] {
+      flex: 1;
+      margin: 0 12px;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.1);
+      -webkit-appearance: none;
+    }
+    .slider input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px; height: 24px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .value {
+      font-weight: 700;
+      font-size: 18px;
+      min-width: 50px;
+      text-align: right;
+      color: var(--accent);
+    }
+
+    .time-group { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    button {
+      margin-top: 24px;
+      padding: 16px;
+      background: var(--accent);
+      color: black;
+      font-weight: 700;
+      font-size: 17px;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+    }
+    button:hover { background: #00ff99; transform: translateY(-2px); }
+
+    .theme-toggle {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="dark-mode">
+  <div class="container">
+    <button class="theme-toggle" onclick="toggleTheme()">Light/Dark</button>
+
+    <div class="header">
+      <h1>BoardBuddy <span class="ai">AI</span></h1>
+      <p class="subtitle">Let’s create your perfect 90-day board exam plan</p>
+    </div>
+
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+    <form id="onboardingForm">
+      <div><label>Your Name</label><input type="text" id="name" placeholder="e.g. Rohit Sharma" required /></div>
+      <div><label>Board</label><select required><option value="" disabled selected>Select board</option><option>CBSE</option><option>ICSE</option><option>State Board</option></select></div>
+      <div><label>Stream</label><select required><option value="" disabled selected>Select stream</option><option>PCM</option><option>PCB</option><option>Commerce</option><option>Arts</option></select></div>
+      <div><label>Target Percentage</label><input type="number" min="70" max="100" placeholder="95" required /></div>
+
+      <div class="slider-group">
+        <p style="margin-bottom:16px; font-weight:600;">Current Syllabus Progress</p>
+        <div class="slider"><span>Physics</span><input type="range" min="0" max="100" value="30" data-val="phy"/><span class="value" id="phy">30%</span></div>
+        <div class="slider"><span>Chemistry</span><input type="range" min="0" max="100" value="35" data-val="chem"/><span class="value" id="chem">35%</span></div>
+        <div class="slider"><span>Maths/Bio</span><input type="range" min="0" max="100" value="40" data-val="math"/><span class="value" id="math">40%</span></div>
+      </div>
+
+      <div class="time-group">
+        <div><label>Wake Up Time</label><input type="time" value="05:30" required /></div>
+        <div><label>Sleep Time</label><input type="time" value="22:30" required /></div>
+      </div>
+
+      <button type="submit">Generate My 90-Day Plan</button>
+    </form>
+  </div> -->
+<!-- 
+  <script>
+    // === YOUR FIREBASE CONFIG (Replace with yours) ===
+   const firebaseConfig = {
+  apiKey: "AIzaSyAFAON_ZDa46nB4Beh1X2TFSU_gUTJW0oQ",
+  authDomain: "boardbuddy-42e1f.firebaseapp.com",
+  projectId: "boardbuddy-42e1f",
+  storageBucket: "boardbuddy-42e1f.firebasestorage.app",
+  messagingSenderId: "159681600582",
+  appId: "1:159681600582:web:f6af9820c9516083a53e47",
+  measurementId: "G-9EFVKSNKM8"
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Theme toggle
+    function toggleTheme() {
+      const isLight = document.body.classList.toggle('light-mode');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    }
+    if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
+
+    // Live slider values
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+      const id = slider.dataset.val;
+      const output = document.getElementById(id);
+      output.textContent = slider.value + '%';
+      slider.oninput = () => output.textContent = slider.value + '%';
+    });
+
+    // Progress bar
+    setTimeout(() => document.getElementById('progress').style.width = '85%', 400);
+
+    // SAVE TO FIREBASE
+    document.getElementById('onboardingForm').onsubmit = async (e) => {
+      e.preventDefault();
+
+      const user = firebase.auth().currentUser;
+      if (user==null) {
+        alert("Please login first!");
+        window.location.href = "login.html";
+        return;
+      }
+
+      const form = e.target;
+      const data = {
+        name: form.name.value.trim(),
+        board: form.querySelectorAll('select')[0].value,
+        stream: form.querySelectorAll('select')[1].value,
+        targetMarks: parseInt(form.querySelector('input[type="number"]').value),
+        syllabus: {
+          Physics: parseInt(document.getElementById('phy').textContent),
+          Chemistry: parseInt(document.getElementById('chem').textContent),
+          Maths: parseInt(document.getElementById('math').textContent)
+        },
+        wakeUp: form.querySelector('input[type="time"]').value,
+        sleepTime: form.querySelectorAll('input[type="time"]')[1].value,
+        email: user.email,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      try {
+        await db.collection('users').doc(user.uid).set(data, { merge: true });
+        localStorage.setItem('onboarded', 'true');
+        alert('Your 90-day plan is ready! Redirecting...');
+        window.location.href = 'routinemaking.html';
+      } catch (err) {
+        console.error(err);
+        alert('Save failed. Check internet or Firebase rules.');
+      }
+    };
+  </script>
+</body>
+</html> -->
+ -->

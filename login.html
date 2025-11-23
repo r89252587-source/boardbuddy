@@ -63,6 +63,10 @@
           // Check if first time
           const onboarded = localStorage.getItem("onboarded");
           window.location.href = onboarded ? "dashboard.html" : "onboarding.html";
+
+//  window.location.href = "onboarding.html";
+
+
         })
         .catch((error) => {
           alert("Login failed: " + error.message);

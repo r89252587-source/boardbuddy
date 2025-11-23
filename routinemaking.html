@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard • BoardBuddy AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root { --bg: #0a0a0a; --card: rgba(20,20,30,0.8); --text: #fff; --accent: #00ff88; --gray: #aaa; }
+    .light-mode { --bg: #f8f9fa; --card: rgba(255,255,255,0.95); --text: #111; --accent: #00cc70; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: 'Inter', sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding:20px; transition:0.4s; }
+    .container { max-width:560px; margin:auto; }
+    h1 { font-size:32px; text-align:center; font-weight:800; }
+    .ai { background:linear-gradient(90deg,#00ff88,#00d4ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .routine { background:var(--card); backdrop-filter:blur(20px); border-radius:20px; padding:24px; margin:20px 0; border:1px solid rgba(255,255,255,0.1); }
+    .section h3 { color:var(--accent); margin:20px 0 12px; font-size:19px; }
+    .block { background:rgba(255,255,255,0.05); padding:14px; border-radius:12px; margin:8px 0; display:flex; justify-content:space-between; }
+    .time { font-weight:700; color:var(--accent); }
+    .loader { text-align:center; padding:40px; }
+    .spinner { width:40px; height:40px; border:4px solid #333; border-top:4px solid var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin:auto; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .chat-box { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:90%; max-width:500px; background:var(--card); border-radius:20px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,0.5); }
+    #chatInput { width:100%; padding:14px; border-radius:12px; border:none; background:rgba(255,255,255,0.1); color:var(--text); font-size:16px; }
+    .msg { padding:10px 14px; border-radius:12px; margin:8px 0; max-width:85%; }
+    .user { background:var(--accent); color:black; align-self:flex-end; margin-left:auto; }
+    .ai-msg { background:rgba(255,255,255,0.1); }
+    #chatLog { height:280px; overflow-y:auto; padding:10px; }
+  </style>
+</head>
+<body class="dark-mode">
+  <div class="container">
+    <h1>BoardBuddy <span class="ai">AI</span></h1>
+    <p id="greeting" style="text-align:center; margin:10px 0 20px; opacity:0.9;"></p>
+
+    <div class="routine" id="routineDisplay">
+      <div class="loader">
+        <div class="spinner"></div>
+        <p style="margin-top:16px;">Generating your perfect routine...</p>
+      </div>
+    </div>
+
+    <div class="chat-box">
+      <div id="chatLog"></div>
+      <input type="text" id="chatInput" placeholder="Ask AI → Can I play for 1 hour?" />
+    </div>
+  </div>
+
+  <script>
+    // YOUR FIREBASE CONFIG
+  const firebaseConfig = {
+  apiKey: "AIzaSyAFAON_ZDa46nB4Beh1X2TFSU_gUTJW0oQ",
+  authDomain: "boardbuddy-42e1f.firebaseapp.com",
+  projectId: "boardbuddy-42e1f",
+  storageBucket: "boardbuddy-42e1f.firebasestorage.app",
+  messagingSenderId: "159681600582",
+  appId: "1:159681600582:web:f6af9820c9516083a53e47",
+  measurementId: "G-9EFVKSNKM8"
+};
+
+firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    const GROK_API_KEY = "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";
+
+    let userData = {};
+    let referenceRoutine = null;
+
+    auth.onAuthStateChanged(async (user) => {
+      // if (!user) { window.location.href = "login.html"; return; }
+
+      const doc = await db.collection("users").doc(user.uid).get();
+      if (!doc.exists) { alert("Complete onboarding first!"); window.location.href = "onboarding.html"; return; }
+
+      userData = doc.data();
+      document.getElementById("greeting").innerText = `Hello, ${userData.name.split(" ")[0]}! Ready to conquer today?`;
+
+      referenceRoutine = userData.referenceRoutine;
+      if (referenceRoutine) {
+        displayRoutine(referenceRoutine);
+      } else {
+        generateReferenceRoutine();
+      }
+    });
+
+    async function generateReferenceRoutine() {
+      const prompt = `You are BoardBuddy AI — a strict, caring Class 12 mentor.
+
+User Details:
+- Name: ${userData.name}
+- Board: ${userData.board}, Stream: ${userData.stream}
+- Target: ${userData.targetMarks}% | Wake up: ${userData.wakeUp} | Sleep: ${userData.sleepTime}
+- Syllabus left: Physics ${100 - userData.syllabus.Physics}%, Chemistry ${100 - userData.syllabus.Chemistry}%, Maths ${100 - userData.syllabus.Maths}%
+
+Generate a HIGH-INTENSITY daily reference routine (same every day) in exact JSON:
+{
+  "sections": [
+    {"title":"Morning Routine","blocks":[{"time":"05:30 - 06:15","task":"Wake up + Workout + Freshen up"}]},
+    {"title":"Study Block 1","blocks":[{"time":"06:30 - 09:30","task":"Physics (High weightage)"}]},
+    {"title":"Break & School","blocks":[{"time":"09:30 - 16:00","task":"Breakfast + School/Coaching"}]},
+    {"title":"Evening Study","blocks":[{"time":"16:30 - 20:00","task":"Chemistry + Maths Revision"}]},
+    {"title":"Night Wind Down","blocks":[{"time":"20:30 - 22:30","task":"Quick Revision + Relax + Sleep"}]}
+  ]
+}
+Make it realistic for 95%+ scorer.`;
+
+      try {
+        const routineJson = await callGrok(prompt);
+        const jsonMatch = routineJson.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw "No JSON found";
+
+        referenceRoutine = JSON.parse(jsonMatch[0]);
+        await db.collection("users").doc(auth.currentUser.uid).update({ referenceRoutine });
+        displayRoutine(referenceRoutine);
+        await saveTodayRoutine();
+      } catch (err) {
+        document.getElementById("routineDisplay").innerHTML = `<p style="color:#ff6b6b; text-align:center;">Failed to generate routine. Retrying in 5s...</p>`;
+        setTimeout(generateReferenceRoutine, 5000);
+      }
+    }
+
+    function displayRoutine(r) {
+      const html = r.sections.map(sec => `
+        <div class="section">
+          <h3>${sec.title}</h3>
+          ${sec.blocks.map(b => `
+            <div class="block">
+              <span>${b.task}</span>
+              <span class="time">${b.time}</span>
+            </div>`).join("")}
+        </div>`).join("");
+
+      document.getElementById("routineDisplay").innerHTML = `<h2 style="margin-bottom:16px; color:var(--accent);">Your Daily Routine</h2>${html}`;
+    }
+
+    async function saveTodayRoutine() {
+      const today = new Date().toISOString().split("T")[0];
+      await db.collection("users").doc(auth.currentUser.uid).collection("daily").doc(today).set({
+        routine: referenceRoutine,
+        date: today,
+        completedTasks: []
+      }, { merge: true });
+    }
+
+    // Grok API Call (Fast & Reliable)
+    async function callGrok(prompt) {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${GROK_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": window.location.href,
+          "X-Title": "BoardBuddy AI"
+        },
+        body: JSON.stringify({
+          model: "x-ai/grok-4.1-fast",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 1000,
+          temperature: 0.7
+        })
+      });
+
+      if (!res.ok) throw `HTTP ${res.status}`;
+      const data = await res.json();
+      return data.choices[0].message.content;
+    }
+
+    // Chat with AI
+    document.getElementById("chatInput").addEventListener("keypress", async (e) => {
+      if (e.key !== "Enter" || !e.target.value.trim()) return;
+      const msg = e.target.value.trim();
+      addChat("You", msg);
+      e.target.value = "";
+
+      const prompt = `User data: ${JSON.stringify(userData)}\nCurrent routine: ${JSON.stringify(referenceRoutine)}\nUser says: "${msg}"\nReply naturally. If adjustment needed, end with <<<ROUTINE>>>new_json_here<<<END>>>`;
+
+      const reply = await callGrok(prompt);
+      addChat("AI", reply);
+
+      const match = reply.match(/<<<ROUTINE>>>([\s\S]*?)<<<END>>>/);
+      if (match) {
+        try {
+          const updated = JSON.parse(match[1]);
+          referenceRoutine = updated;
+          await db.collection("users").doc(auth.currentUser.uid).update({ referenceRoutine });
+          displayRoutine(updated);
+          await saveTodayRoutine();
+          addChat("AI", "Routine updated & saved!");
+        } catch (e) { addChat("AI", "Could not update routine."); }
+      }
+    });
+
+    function addChat(sender, text) {
+      const log = document.getElementById("chatLog");
+      const div = document.createElement("div");
+      div.className = `msg ${sender === "You" ? "user" : "ai-msg"}`;
+      div.innerHTML = text.replace(/\n/g, "<br>");
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+  </script>
+</body>
+</html>

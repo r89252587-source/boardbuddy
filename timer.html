@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>Study Timer • BoardBuddy AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; text-align: center; padding: 20px; }
+    h1 { font-size: 28px; margin: 20px 0; font-weight: 800; max-width: 90%; word-wrap: break-word; }
+    .timer { font-size: 90px; font-weight: 800; color: #00ff88; margin: 40px 0; letter-spacing: 5px; }
+    .btn { background: #00ff88; color: black; padding: 18px 40px; border-radius: 16px; font-weight: 700; font-size: 18px; cursor: pointer; box-shadow: 0 10px 30px rgba(0,255,136,0.4); }
+    .done { color: #ff6b6b !important; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
+  </style>
+</head>
+<body>
+  <h1 id="taskName">Study Session</h1>
+  <div class="timer" id="timer">00:00</div>
+  <div class="btn" onclick="window.close()">Close Timer</div>
+
+  <script>
+  const firebaseConfig = {
+  apiKey: "AIzaSyAFAON_ZDa46nB4Beh1X2TFSU_gUTJW0oQ",
+  authDomain: "boardbuddy-42e1f.firebaseapp.com",
+  projectId: "boardbuddy-42e1f",
+  storageBucket: "boardbuddy-42e1f.firebasestorage.app",
+  messagingSenderId: "159681600582",
+  appId: "1:159681600582:web:f6af9820c9516083a53e47",
+  measurementId: "G-9EFVKSNKM8"
+};    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const params = new URLSearchParams(location.search);
+    const taskName = params.get("task") || "Study";
+    const timeEnd = params.get("time");
+    const uid = params.get("uid");
+    const date = params.get("date");
+
+    document.getElementById("taskName").textContent = taskName;
+
+    if (!timeEnd || !uid || !date) {
+      document.getElementById("timer").textContent = "Error";
+      return;
+    }
+
+    const [h, m] = timeEnd.split(":").map(Number);
+    let totalSeconds = h * 3600 + m * 60;
+
+    const timerEl = document.getElementById("timer");
+    const iv = setInterval(() => {
+      if (totalSeconds <= 0) {
+        clearInterval(iv);
+        timerEl.textContent = "Done!";
+        timerEl.classList.add("done");
+
+        db.collection("users").doc(uid).collection("daily").doc(date).update({
+          completed: firebase.firestore.FieldValue.arrayUnion(taskName)
+        }).then(() => {
+          setTimeout(() => {
+            if (confirm("Amazing work! Task completed!\nClose timer?")) window.close();
+          }, 1000);
+        });
+        return;
+      }
+      totalSeconds--;
+      const mins = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+      const secs = String(totalSeconds % 60).padStart(2, "0");
+      timerEl.textContent = mins + ":" + secs;
+    }, 1000);
+  </script>
+</body>
+</html>
